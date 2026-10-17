@@ -15,7 +15,7 @@ printer without their own print agent.
 ## Install
 
 1. Install the backend, [btprintbridge](https://github.com/stikkx/btprintbridge)
-   (Python 3, no extra packages):
+   (Python 3 with Pillow and qrcode — `sudo pacman -S python-pillow python-qrcode`):
 
    ```
    git clone https://github.com/stikkx/btprintbridge ~/.local/share/btprintbridge

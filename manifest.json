@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "id": "stikkx.labelprint",
+  "name": "Label printer",
+  "version": "0.2.0",
+  "author": "stikkx",
+  "license": "MIT",
+  "description": "Brother PT-P710BT (PT-series) label printer for the bar: connection dot, print popup with QR/Code128, and a Print API switch so web apps can print over HTTP",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Label printer",
+    "description": "PT-P710BT connection dot and print controls",
+    "category": "Devices",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "mac": "",
+      "channel": "1",
+      "backend": "~/.local/bin/btprintbridge",
+      "copies": 1,
+      "label": "",
+      "qrEnabled": false,
+      "qrValue": "",
+      "barcodeEnabled": false,
+      "barcodeValue": "",
+      "apiEnabled": false,
+      "apiPort": 8710,
+      "apiOrigins": "http://localhost:3000"
+    },
+    "schema": [
+      {
+        "key": "mac",
+        "type": "string",
+        "label": "Printer MAC (empty = first paired PT-* printer)"
+      },
+      {
+        "key": "channel",
+        "type": "string",
+        "label": "RFCOMM channel"
+      },
+      {
+        "key": "backend",
+        "type": "string",
+        "label": "Backend command"
+      },
+      {
+        "key": "copies",
+        "type": "number",
+        "label": "Default copies"
+      },
+      {
+        "key": "label",
+        "type": "string",
+        "label": "Last label"
+      },
+      {
+        "key": "qrEnabled",
+        "type": "bool",
+        "label": "QR enabled"
+      },
+      {
+        "key": "qrValue",
+        "type": "string",
+        "label": "QR value override"
+      },
+      {
+        "key": "barcodeEnabled",
+        "type": "bool",
+        "label": "Barcode enabled"
+      },
+      {
+        "key": "barcodeValue",
+        "type": "string",
+        "label": "Barcode value override"
+      },
+      {
+        "key": "apiEnabled",
+        "type": "bool",
+        "label": "Print API enabled"
+      },
+      {
+        "key": "apiPort",
+        "type": "number",
+        "label": "Print API port"
+      },
+      {
+        "key": "apiOrigins",
+        "type": "string",
+        "label": "Print API allowed origins (comma-separated)"
+      }
+    ]
+  }
+}

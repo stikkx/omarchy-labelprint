@@ -448,6 +448,22 @@ Panel {
     }
   }
 
+  // The key goes backend stdout -> wl-copy stdin; it never appears in argv.
+  function copyApiKey() {
+    if (keyCopyProc.running) return
+    keyCopyProc.command = ["/bin/sh", "-c", "k=$(\"$1\" api-key) && printf '%s' \"$k\" | wl-copy", "sh", root.backendPath]
+    keyCopyProc.running = true
+  }
+
+  Process {
+    id: keyCopyProc
+    onExited: function(code) {
+      root.notify(code !== 0, code === 0
+        ? "Print API key copied — paste it into the web app's print dialog"
+        : "Could not read the Print API key")
+    }
+  }
+
   function notify(critical, msg) {
     var argv = ["notify-send"]
     if (critical) argv.push("-u", "critical")
@@ -759,7 +775,8 @@ Panel {
           }
 
           Text {
-            width: Math.max(0, parent.width - apiTitle.width - apiSwitch.implicitWidth - parent.spacing * 2)
+            width: Math.max(0, parent.width - apiTitle.width - apiSwitch.implicitWidth - parent.spacing * 2
+                               - (keyBtn.visible ? keyBtn.width + parent.spacing : 0))
             anchors.verticalCenter: parent.verticalCenter
             text: {
               if (root.apiBusy) return root.apiEnabled ? "Starting…" : "Stopping…"
@@ -773,6 +790,21 @@ Panel {
             font.pixelSize: Style.font.caption
             elide: Text.ElideRight
             textFormat: Text.PlainText
+          }
+
+          // Web apps need the API key (Authorization: Bearer …).
+          Button {
+            id: keyBtn
+            visible: root.apiRunning
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Copy key"
+            fontSize: Style.font.caption
+            foreground: root.barForeground
+            fontFamily: root.bar.fontFamily
+            horizontalPadding: Style.spacing.controlPaddingX
+            verticalPadding: Style.spacing.controlPaddingY
+            bordered: true
+            onClicked: root.copyApiKey()
           }
         }
 

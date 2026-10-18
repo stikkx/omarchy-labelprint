@@ -74,7 +74,13 @@ user unit `btprintbridge-api`, listening on `http://127.0.0.1:<apiPort>`
 dot. Web apps print through it with the same backend, lock and printer
 settings as the popup — BinaryStock's "Print" button uses it directly.
 
-- Only origins listed in `apiOrigins` may call it from a browser (CORS).
+- **API key:** printing needs the key (`Authorization: Bearer <key>`).
+  Press **Copy key** next to the switch and paste it into the web app's print
+  settings. The key is created on first start in
+  `~/.config/btprintbridge/api-key` (only readable by you); make a new one
+  with `btprintbridge api-key --rotate`, then switch the API off and on.
+- Only origins listed in `apiOrigins` may call it from a browser; requests
+  from other sites or with a non-loopback `Host` are refused.
 - The unit survives shell reloads; when the switch is on, the plugin
   re-starts it at shell start (after login) and restarts it when port,
   origins, MAC, channel or backend change.

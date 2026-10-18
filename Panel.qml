@@ -154,9 +154,10 @@ Panel {
   readonly property string apiUrl: "http://127.0.0.1:" + apiPort
   // Everything the running server was started with; a change restarts it.
   // Stored in the unit Description so a reload can tell whether the running
-  // unit is current.
+  // unit is current. "auth" marks servers that require the API key: units
+  // started by older plugin versions lack it and get replaced.
   readonly property string apiConfigKey: apiEnabled
-    ? ["btprintbridge API", apiPort, apiOrigins, String(scalarSetting("mac") || ""),
+    ? ["btprintbridge API auth", apiPort, apiOrigins, String(scalarSetting("mac") || ""),
        String(scalarSetting("channel")), backendPath].join(" | ")
     : ""
 
@@ -199,7 +200,10 @@ Panel {
         "u=$1; desc=$2; backend=$3; port=$4; origins=$5; mac=$6; ch=$7\n" +
         "test -x \"$backend\" || { echo \"backend not found: $backend\" >&2; exit 3; }\n" +
         "cur=$(systemctl --user show -p Description --value \"$u\" 2>/dev/null)\n" +
-        "if systemctl --user is-active --quiet \"$u\" && [ \"$cur\" = \"$desc\" ]; then exit 0; fi\n" +
+        // Keep a running unit only if it is current AND its server enforces the
+        // API key (an updated backend needs a restart to load the new code).
+        "if systemctl --user is-active --quiet \"$u\" && [ \"$cur\" = \"$desc\" ] &&\n" +
+        "   curl -fsS --max-time 2 \"http://127.0.0.1:$port/health\" 2>/dev/null | grep -q '\"auth\": *\"bearer\"'; then exit 0; fi\n" +
         "systemctl --user stop \"$u\" 2>/dev/null; systemctl --user reset-failed \"$u\" 2>/dev/null\n" +
         "systemd-run --user --quiet --unit=\"$u\" --collect --description=\"$desc\" " +
         "-p Restart=on-failure -p RestartSec=5 -p StartLimitBurst=3 " +

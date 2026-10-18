@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "stikkx.labelprint",
   "name": "Label printer",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": "stikkx",
   "license": "MIT",
   "description": "Brother PT-P710BT (PT-series) label printer for the bar: connection dot, print popup with QR/Code128, and a Print API switch so web apps can print over HTTP",

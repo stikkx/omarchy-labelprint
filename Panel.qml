@@ -530,12 +530,15 @@ Panel {
     }
     var fontSize = root.fontSizeDraft > 0 ? root.fontSizeDraft : "auto"
     if (root.presetDraft === "vcard") {
-      // btprintbridge builds the vCard QR and the text lines.
-      return {
+      // The QR is the vCard; the label text is free. Empty text: btprintbridge
+      // prints the vCard fields instead.
+      var spec = {
         vcard: { name: root.vcardNameDraft, email: root.vcardEmailDraft, phone: root.vcardPhoneDraft },
         font_size: fontSize,
         copies: root.copiesDraft
       }
+      if (root.labelDraft.trim() !== "") spec.text = root.labelDraft
+      return spec
     }
     return {
       text: root.labelDraft,
@@ -976,9 +979,8 @@ Panel {
           }
         }
 
-        // ---------- Label entry ----------
+        // ---------- Label entry (both presets) ----------
         Rectangle {
-          visible: root.presetDraft === "text"
           width: parent.width
           height: Style.space(96)
           radius: Style.cornerRadius
@@ -990,7 +992,9 @@ Panel {
             anchors.margins: Style.space(8)
             wrapMode: QQC.TextArea.Wrap
             textFormat: Text.PlainText
-            placeholderText: "Shelf A-3\nDrawer 2"
+            placeholderText: root.presetDraft === "vcard"
+              ? "Label text (empty = name, email, phone)"
+              : "Shelf A-3\nDrawer 2"
             color: root.barForeground
             font.family: root.bar.fontFamily
             font.pixelSize: Style.font.body

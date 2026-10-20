@@ -63,7 +63,8 @@ missing, the popup cassette chip shows
      override; empty means the code encodes the label text itself.
    - **Preset**: *Text* (free text, optional QR / Code128) or *vCard*
      (Name, Email, Phone → contact QR code that phone cameras offer to save,
-     with the fields printed next to it).
+     with your label text next to it — or Name / Email / Phone when the
+     text field is empty).
    - **Font**: `0` = auto (as large as fits), or a size in dots; a size that
      does not fit is shrunk.
    - **Preview**: the label as it will print (rendered by btprintbridge),

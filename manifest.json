@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "stikkx.labelprint",
   "name": "Label printer",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "author": "stikkx",
   "license": "MIT",
-  "description": "Brother PT-P710BT (PT-series) label printer for the bar: connection dot, print popup with QR/Code128, and a Print API switch so web apps can print over HTTP",
+  "description": "Brother PT-series label printer for the bar: connection dot, print popup with live preview, QR/Code128, a vCard contact preset, adjustable font size, and a Print API switch so web apps can print over HTTP",
   "kinds": [
     "bar-widget"
   ],
@@ -30,7 +30,12 @@
       "barcodeValue": "",
       "apiEnabled": false,
       "apiPort": 8710,
-      "apiOrigins": "http://localhost:3000"
+      "apiOrigins": "http://localhost:3000",
+      "preset": "text",
+      "vcardName": "",
+      "vcardEmail": "",
+      "vcardPhone": "",
+      "fontSize": 0
     },
     "schema": [
       {
@@ -92,6 +97,31 @@
         "key": "apiOrigins",
         "type": "string",
         "label": "Print API allowed origins (comma-separated)"
+      },
+      {
+        "key": "preset",
+        "type": "string",
+        "label": "Preset (text or vcard)"
+      },
+      {
+        "key": "vcardName",
+        "type": "string",
+        "label": "vCard name"
+      },
+      {
+        "key": "vcardEmail",
+        "type": "string",
+        "label": "vCard email"
+      },
+      {
+        "key": "vcardPhone",
+        "type": "string",
+        "label": "vCard phone"
+      },
+      {
+        "key": "fontSize",
+        "type": "number",
+        "label": "Font size in dots (0 = auto)"
       }
     ]
   }

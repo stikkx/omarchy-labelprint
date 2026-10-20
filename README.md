@@ -61,6 +61,13 @@ missing, the popup cassette chip shows
    - **QR / Code128** rows: flip the switch to print a QR code (left of the
      text) and/or a vertical Code128 barcode (right). The value field is an
      override; empty means the code encodes the label text itself.
+   - **Preset**: *Text* (free text, optional QR / Code128) or *vCard*
+     (Name, Email, Phone → contact QR code that phone cameras offer to save,
+     with the fields printed next to it).
+   - **Font**: `0` = auto (as large as fits), or a size in dots; a size that
+     does not fit is shrunk.
+   - **Preview**: the label as it will print (rendered by btprintbridge),
+     with its length; errors (e.g. an invalid email) show here.
    - **Copies**: 1–100; each copy is cut separately.
 4. Hit **Print**. A notification reports the printed label count or the
    backend's error reason. The popup can be closed freely; the last label and

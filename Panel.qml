@@ -38,6 +38,11 @@ Panel {
     qrValue: "",
     barcodeEnabled: false,
     barcodeValue: "",
+    preset: "text",
+    vcardName: "",
+    vcardEmail: "",
+    vcardPhone: "",
+    fontSize: 0,
     apiEnabled: false,
     apiPort: 8710,
     apiOrigins: "http://localhost:3000"
@@ -281,6 +286,72 @@ Panel {
   property string qrValueDraft: ""
   property bool barcodeEnabledDraft: false
   property string barcodeValueDraft: ""
+  property string presetDraft: "text"          // "text" | "vcard"
+  property string vcardNameDraft: ""
+  property string vcardEmailDraft: ""
+  property string vcardPhoneDraft: ""
+  property int fontSizeDraft: 0                // 0 = auto
+
+  // ---- Preview (btprintbridge preview -> PNG, same renderer as print) ----
+  readonly property string previewDir: expandPath("~/.cache/stikkx.labelprint")
+  readonly property int previewTape: {
+    var w = statusResult ? Number(statusResult.media_width) : 0
+    return [9, 12, 18, 24].indexOf(w) >= 0 ? w : 12
+  }
+  property int previewRev: 0
+  property var previewInfo: null
+  property string previewError: ""
+
+  function schedulePreview() { if (root.opened) previewTimer.restart() }
+  onLabelDraftChanged: schedulePreview()
+  onQrEnabledDraftChanged: schedulePreview()
+  onQrValueDraftChanged: schedulePreview()
+  onBarcodeEnabledDraftChanged: schedulePreview()
+  onBarcodeValueDraftChanged: schedulePreview()
+  onPresetDraftChanged: schedulePreview()
+  onVcardNameDraftChanged: schedulePreview()
+  onVcardEmailDraftChanged: schedulePreview()
+  onVcardPhoneDraftChanged: schedulePreview()
+  onFontSizeDraftChanged: schedulePreview()
+  onPreviewTapeChanged: schedulePreview()
+
+  Timer {
+    id: previewTimer
+    interval: 300
+    onTriggered: root.renderPreview()
+  }
+
+  function renderPreview() {
+    if (!backendFound) return
+    if (previewProc.running) { previewTimer.restart(); return }
+    previewOut = ""
+    previewErr = ""
+    // Spec reaches the file via printf '%s' "$2" — no shell expansion.
+    previewProc.command = ["/bin/sh", "-c",
+      "mkdir -p \"$1\" && printf '%s' \"$2\" > \"$1/preview-spec.json\" && " +
+      "exec \"$3\" preview --spec \"$1/preview-spec.json\" --tape \"$4\" --out \"$1/preview.png\" --scale 2",
+      "sh", previewDir, JSON.stringify(specForPrint()), backendPath, String(previewTape)]
+    previewProc.running = true
+  }
+
+  property string previewOut: ""
+  property string previewErr: ""
+
+  Process {
+    id: previewProc
+    stdout: StdioCollector { waitForEnd: true; onStreamFinished: root.previewOut = text }
+    stderr: StdioCollector { waitForEnd: true; onStreamFinished: root.previewErr = text }
+    onExited: function(code) {
+      if (code === 0) {
+        try { root.previewInfo = JSON.parse(root.previewOut) } catch (e) { root.previewInfo = null }
+        root.previewError = ""
+        root.previewRev++
+      } else {
+        var lines = String(root.previewErr || "").trim().split("\n")
+        root.previewError = (lines[lines.length - 1] || "preview failed").replace(/^btprintbridge: /, "")
+      }
+    }
+  }
 
   function persistLabel() {
     if (root.labelDraft === String(scalarSetting("label") || "")) return
@@ -295,7 +366,12 @@ Panel {
       ["qrEnabled", root.qrEnabledDraft],
       ["qrValue", root.qrValueDraft],
       ["barcodeEnabled", root.barcodeEnabledDraft],
-      ["barcodeValue", root.barcodeValueDraft]
+      ["barcodeValue", root.barcodeValueDraft],
+      ["preset", root.presetDraft],
+      ["vcardName", root.vcardNameDraft],
+      ["vcardEmail", root.vcardEmailDraft],
+      ["vcardPhone", root.vcardPhoneDraft],
+      ["fontSize", root.fontSizeDraft]
     ]
     for (var i = 0; i < pairs.length; i++) {
       var key = pairs[i][0], draft = pairs[i][1]
@@ -326,7 +402,13 @@ Panel {
       qrValueDraft = String(scalarSetting("qrValue") || "")
       barcodeEnabledDraft = !!scalarSetting("barcodeEnabled")
       barcodeValueDraft = String(scalarSetting("barcodeValue") || "")
+      presetDraft = scalarSetting("preset") === "vcard" ? "vcard" : "text"
+      vcardNameDraft = String(scalarSetting("vcardName") || "")
+      vcardEmailDraft = String(scalarSetting("vcardEmail") || "")
+      vcardPhoneDraft = String(scalarSetting("vcardPhone") || "")
+      fontSizeDraft = Math.max(0, Math.min(120, Math.round(Number(scalarSetting("fontSize")) || 0)))
       statusError = ""
+      previewTimer.restart()
       probeBackend()
     } else {
       persistLabel()
@@ -446,10 +528,20 @@ Panel {
       var v = String(value || "")
       return { value: v === "" ? null : v }
     }
+    var fontSize = root.fontSizeDraft > 0 ? root.fontSizeDraft : "auto"
+    if (root.presetDraft === "vcard") {
+      // btprintbridge builds the vCard QR and the text lines.
+      return {
+        vcard: { name: root.vcardNameDraft, email: root.vcardEmailDraft, phone: root.vcardPhoneDraft },
+        font_size: fontSize,
+        copies: root.copiesDraft
+      }
+    }
     return {
       text: root.labelDraft,
       qr: codeEntry(root.qrEnabledDraft, root.qrValueDraft),
       barcode: codeEntry(root.barcodeEnabledDraft, root.barcodeValueDraft),
+      font_size: fontSize,
       copies: root.copiesDraft
     }
   }
@@ -814,8 +906,79 @@ Panel {
           }
         }
 
+        // ---------- Preset ----------
+        Row {
+          width: parent.width
+          spacing: Style.space(10)
+
+          Text {
+            width: Style.space(56)
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Preset"
+            color: root.barForeground
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.bodySmall
+            textFormat: Text.PlainText
+          }
+
+          ButtonGroup {
+            anchors.verticalCenter: parent.verticalCenter
+            options: [{ value: "text", label: "Text" }, { value: "vcard", label: "vCard" }]
+            value: root.presetDraft
+            foreground: root.barForeground
+            accent: root.barForeground
+            fontFamily: root.bar.fontFamily
+            fontSize: Style.font.bodySmall
+            focusable: false
+            onChanged: function(v) { root.presetDraft = v }
+          }
+        }
+
+        // ---------- vCard fields ----------
+        Column {
+          visible: root.presetDraft === "vcard"
+          width: parent.width
+          spacing: Style.space(6)
+
+          Repeater {
+            model: [
+              { key: "vcardNameDraft", label: "Name", hint: "Max Mustermann" },
+              { key: "vcardEmailDraft", label: "Email", hint: "max@example.com" },
+              { key: "vcardPhoneDraft", label: "Phone", hint: "+49 170 1234567" }
+            ]
+            delegate: Row {
+              required property var modelData
+              width: parent.width
+              spacing: Style.space(10)
+
+              Text {
+                id: vcTitle
+                width: Style.space(56)
+                anchors.verticalCenter: parent.verticalCenter
+                text: modelData.label
+                color: root.barForeground
+                font.family: root.bar.fontFamily
+                font.pixelSize: Style.font.bodySmall
+                textFormat: Text.PlainText
+              }
+
+              TextField {
+                width: Math.max(0, parent.width - vcTitle.width - parent.spacing)
+                anchors.verticalCenter: parent.verticalCenter
+                text: root[modelData.key]
+                placeholderText: modelData.hint
+                color: root.barForeground
+                font.family: root.bar.fontFamily
+                font.pixelSize: Style.font.bodySmall
+                onTextChanged: if (text !== root[modelData.key]) root[modelData.key] = text
+              }
+            }
+          }
+        }
+
         // ---------- Label entry ----------
         Rectangle {
+          visible: root.presetDraft === "text"
           width: parent.width
           height: Style.space(96)
           radius: Style.cornerRadius
@@ -849,6 +1012,7 @@ Panel {
         // validator here; the backend owns the ASCII 32-127 check and surfaces
         // violations through the print-error notification.
         Column {
+          visible: root.presetDraft === "text"
           width: parent.width
           spacing: Style.space(6)
 
@@ -925,6 +1089,85 @@ Panel {
               onTextChanged: if (text !== root.barcodeValueDraft) root.barcodeValueDraft = text
             }
           }
+        }
+
+        // ---------- Font size ----------
+        Row {
+          width: parent.width
+          spacing: Style.space(10)
+
+          NumberField {
+            id: fontField
+            label: "Font"
+            from: 0
+            to: 120
+            value: root.fontSizeDraft
+            foreground: root.barForeground
+            accent: root.barForeground
+            fontFamily: root.bar.fontFamily
+            onModified: function(v) { root.fontSizeDraft = Math.max(0, Math.min(120, v)) }
+          }
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.max(0, parent.width - fontField.width - parent.spacing)
+            text: {
+              var used = root.previewInfo ? root.previewInfo.font_size : 0
+              if (root.fontSizeDraft === 0) return "0 = auto" + (used ? " (" + used + ")" : "")
+              return used && used < root.fontSizeDraft ? "too big — shrunk to " + used : "dots"
+            }
+            color: root.barForeground
+            opacity: 0.6
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.caption
+            elide: Text.ElideRight
+            textFormat: Text.PlainText
+          }
+        }
+
+        // ---------- Preview ----------
+        Rectangle {
+          width: parent.width
+          height: Style.space(64)
+          radius: Style.cornerRadius
+          color: "white"
+
+          Image {
+            anchors.fill: parent
+            anchors.margins: Style.space(6)
+            visible: root.previewError === "" && root.previewRev > 0
+            source: root.previewRev > 0 ? "file://" + root.previewDir + "/preview.png?v=" + root.previewRev : ""
+            cache: false
+            asynchronous: false
+            fillMode: Image.PreserveAspectFit
+            smooth: false
+          }
+
+          Text {
+            anchors.centerIn: parent
+            width: parent.width - Style.space(16)
+            visible: root.previewError !== ""
+            text: root.previewError
+            color: "#b00020"
+            wrapMode: Text.Wrap
+            horizontalAlignment: Text.AlignHCenter
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.caption
+            textFormat: Text.PlainText
+          }
+        }
+
+        Text {
+          width: parent.width
+          visible: !!root.previewInfo && root.previewError === ""
+          text: root.previewInfo
+            ? root.previewInfo.tape_width + " mm tape · " + root.previewInfo.length_mm + " mm long"
+            : ""
+          color: root.barForeground
+          opacity: 0.6
+          font.family: root.bar.fontFamily
+          font.pixelSize: Style.font.caption
+          textFormat: Text.PlainText
         }
 
         // ---------- Copies + print ----------

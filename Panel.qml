@@ -30,7 +30,7 @@ Panel {
 
   readonly property var _defaults: ({
     mac: "",
-    channel: "1",
+    channel: "auto",
     backend: "~/.local/bin/btprintbridge",
     copies: 1,
     label: "",
@@ -107,12 +107,14 @@ Panel {
     _pollSeen = true
   }
 
-  // Empty MAC: like the backend, use the first paired device named "PT-…".
+  // Empty MAC: like the backend, any paired device named "PT-…" (the
+  // connected one, if any).
   function poll() {
     if (pollProc.running) return
     pollProc.command = macReady
       ? ["bluetoothctl", "info", mac]
-      : ["sh", "-c", "m=$(bluetoothctl devices Paired | awk '$3 ~ /^PT-/ {print $2; exit}'); [ -n \"$m\" ] && bluetoothctl info \"$m\""]
+      : ["sh", "-c", "for m in $(bluetoothctl devices Paired | awk '$3 ~ /^PT-/ {print $2}'); do " +
+         "i=$(bluetoothctl info \"$m\"); case \"$i\" in *'Connected: yes'*) printf '%s\\n' \"$i\"; exit 0;; esac; done"]
     pollProc.running = true
     pollKillTimer.restart()
   }

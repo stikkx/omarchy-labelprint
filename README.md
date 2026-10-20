@@ -95,7 +95,7 @@ Configured from the shell's widget settings (stored in `shell.json`):
 | Key             | Type   | Default                   | Meaning                              |
 |-----------------|--------|---------------------------|--------------------------------------|
 | `mac`           | string | (empty)                   | Printer MAC address (empty = first paired `PT-*` printer) |
-| `channel`       | string | `1`                       | RFCOMM channel                       |
+| `channel`       | string | `auto`                    | RFCOMM channel; `auto` finds it (some units use 2) |
 | `backend`       | string | `~/.local/bin/btprintbridge` | Backend CLI command              |
 | `copies`        | number | `1`                       | Default copies                       |
 | `label`         | string | (empty)                   | Last label text                      |
